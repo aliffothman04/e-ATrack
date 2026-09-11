@@ -484,6 +484,9 @@
             </button>
         </div>
         <div id="myClassRecordsTable" class="overflow-x-auto"></div>
+
+        <h3 class="font-semibold text-gray-700 mt-6 mb-3">Senarai Topik &amp; Latihan (Rujukan)</h3>
+        <div id="myClassTopicTable" class="overflow-x-auto"></div>
        </div>
       </div>
 
@@ -1890,12 +1893,13 @@
         const isUpdate = existingDoc !== undefined;
 
         if (isUpdate) {
+            // Rekod sedia ada untuk kombinasi ini — papar Topik/Latihan yang telah disimpan.
             document.getElementById('topicInput').value = existingDoc.topic || '';
             document.getElementById('exerciseInput').value = existingDoc.exercise || '';
-        } else {
-            document.getElementById('topicInput').value = '';
-            document.getElementById('exerciseInput').value = '';
         }
+        // Tiada rekod sedia ada: JANGAN kosongkan Topik/Latihan di sini — guru mungkin sudah
+        // menaip maklumat itu SEBELUM klik "Papar Senarai Pelajar", dan ia perlu dikekalkan
+        // supaya tidak hilang / perlu ditaip semula sebelum simpan.
 
         const tbody = document.getElementById('attendanceTableBody');
         tbody.innerHTML = students.map((s, i) => {
@@ -2057,6 +2061,17 @@
                 styles: { fontSize: 7 },
                 theme: 'grid'
             });
+
+            const topicTableEl = document.querySelector('#myClassTopicTable table');
+            if (topicTableEl) {
+                doc.text("Senarai Topik & Latihan", 14, doc.lastAutoTable.finalY + 10);
+                doc.autoTable({
+                    html: '#myClassTopicTable table',
+                    startY: doc.lastAutoTable.finalY + 14,
+                    styles: { fontSize: 8 },
+                    theme: 'grid'
+                });
+            }
 
             doc.save('Laporan_Kelas.pdf');
         });
@@ -3317,6 +3332,32 @@
         html += `</tbody></table>`;
 
         document.getElementById('myClassRecordsTable').innerHTML = html;
+
+        // Senarai Topik & Latihan (Rujukan) — satu baris setiap tarikh, diambil daripada rekod
+        // kumpulan (topic/exercise sama untuk semua pelajar pada tarikh+sesi yang sama).
+        const topicByDate = {};
+        records.forEach(r => {
+            if (!topicByDate[r.date]) topicByDate[r.date] = { topic: r.topic || '', exercise: r.exercise || '' };
+        });
+        let topicHtml = `<table class="w-full text-sm border">
+            <thead class="bg-gray-100"><tr>
+                <th class="p-2 border w-10">Bil</th>
+                <th class="p-2 border">Tarikh</th>
+                <th class="p-2 border">Topik Pembelajaran</th>
+                <th class="p-2 border">Latihan / Aktiviti</th>
+            </tr></thead><tbody>`;
+        dates.forEach((d, i) => {
+            const t = topicByDate[d] || { topic: '', exercise: '' };
+            topicHtml += `<tr>
+                <td class="p-2 border text-center text-gray-500">${i + 1}</td>
+                <td class="p-2 border whitespace-nowrap">${d}</td>
+                <td class="p-2 border">${escapeHtml(t.topic) || '<span class="text-gray-300">-</span>'}</td>
+                <td class="p-2 border">${escapeHtml(t.exercise) || '<span class="text-gray-300">-</span>'}</td>
+            </tr>`;
+        });
+        topicHtml += `</tbody></table>`;
+        document.getElementById('myClassTopicTable').innerHTML = topicHtml;
+
         document.getElementById('myClassRecordsContainer').classList.remove('hidden');
     });
 
